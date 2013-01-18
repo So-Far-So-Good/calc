@@ -1,7 +1,9 @@
 package com.outsmart;
 
 import org.apache.hadoop.hbase.util.Bytes;
+
 import java.security.MessageDigest;
+import java.util.Arrays;
 
 /**
  * @author Vadim Bobrov
@@ -51,7 +53,7 @@ public class RowKeyUtil {
 	/*
 	  * get a unique (almost) hash for a string to use in row key
 	   */
-	static private byte[] getHash(String s) {
+	static public byte[] getHash(String s) {
 
 		MessageDigest md = null;
 		try {
@@ -73,6 +75,33 @@ public class RowKeyUtil {
 	static public long getTimestamp(byte[] rowkey) {
 		long reverseTimestamp = Bytes.toLong(rowkey, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING);
 		return Long.MAX_VALUE - reverseTimestamp;
+	}
+
+	/**
+	 * extract customer hash from rowkey bytes
+	 * @param rowkey bytes to extract from
+	 * @return
+	 */
+	static public byte[] getCustomerHash(byte[] rowkey) {
+		return Arrays.copyOfRange(rowkey, 0, SIZEOF_STRING);
+	}
+
+	/**
+	 * extract customer hash from rowkey bytes
+	 * @param rowkey bytes to extract from
+	 * @return
+	 */
+	static public byte[] getLocationHash(byte[] rowkey) {
+		return Arrays.copyOfRange(rowkey, SIZEOF_STRING, SIZEOF_STRING + SIZEOF_STRING);
+	}
+
+	/**
+	 * extract customer hash from rowkey bytes
+	 * @param rowkey bytes to extract from
+	 * @return
+	 */
+	static public byte[] getWireIdHash(byte[] rowkey) {
+		return Arrays.copyOfRange(rowkey, SIZEOF_STRING + SIZEOF_STRING, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING);
 	}
 
 }

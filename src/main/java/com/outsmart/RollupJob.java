@@ -2,22 +2,18 @@ package com.outsmart;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
+import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -28,13 +24,40 @@ import java.io.IOException;
  */
 public class RollupJob extends Configured implements Tool {
 
-	public static class MapClass extends TableMapper<ImmutableBytesWritable, Result> {
+	public static class MyMapper extends TableMapper<
+			ImmutableBytesWritable,		// customer, location, timestamp
+			IntWritable 				// value for the wireid to be added up
+			> {
 
-		public void map(ImmutableBytesWritable row, Result columns, Context context) throws IOException, InterruptedException {
+		private int numRecords = 0;
+		private final IntWritable ONE = new IntWritable(1);
+		private Text text = new Text();
 
-			for(KeyValue value: columns.list()) {
-				if(value.getValue().length > 0)
-					context.write(row, new Result());   // write something into result
+		@Override
+		public void map(ImmutableBytesWritable rowkey, Result rowvalue, Context context) throws IOException, InterruptedException {
+
+			String val = new String(rowvalue.getValue(Bytes.toBytes("cf"), Bytes.toBytes("attr1")));
+			text.set(val);     // we can only emit Writables...
+
+			//context.write(text, ONE);
+
+
+
+			// extract userKey from the compositeKey (userId + counter)
+			//RowKeyUtil.getTimestamp()
+
+
+			ImmutableBytesWritable userKey = new ImmutableBytesWritable(rowkey.get(), 0, Bytes.SIZEOF_INT);
+			try {
+				context.write(userKey, ONE);
+			} catch (InterruptedException e) {
+				throw new IOException(e);
+			}
+
+
+			numRecords++;
+			if ((numRecords % 10000) == 0) {
+				context.setStatus("mapper processed " + numRecords + " records so far");
 			}
 
 		}
@@ -42,41 +65,46 @@ public class RollupJob extends Configured implements Tool {
 	}
 
 
-	public static Job createSubmittableJob(Configuration conf, String[] args) throws IOException {
+	public static class MyTableReducer extends TableReducer<IntWritable, IntWritable, ImmutableBytesWritable> {
 
-		String tableName = args[0];
-		Job job = new Job(conf, "rowcounter_" + tableName);
-		job.setJarByClass(RollupJob.class); //TODO: see what this is
+		public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+			int i = 0;
+			for (IntWritable val : values) {
+				i += val.get();
+			}
+			Put put = new Put(Bytes.toBytes(key.toString()));
+			put.add(Bytes.toBytes("cf"), Bytes.toBytes("count"), Bytes.toBytes(i));
 
-
-		Scan scan = new Scan();
-		scan.setFilter(new FirstKeyOnlyFilter());
-		scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("power"));
-
-		job.setOutputFormatClass(NullOutputFormat.class); //TODO: see what this is
-		TableMapReduceUtil.initTableMapperJob(tableName, scan, MapClass.class, ImmutableBytesWritable.class, Result.class, job);
-		job.setNumReduceTasks(0);
-		return job;
+			context.write(null, put);
+		}
 	}
 
 
 	public int run(String[] args) throws Exception {
-		Configuration conf = getConf();
+		Configuration conf = HBaseConfiguration.create();
 		Job job = new Job(conf, "RollupJob");
 		job.setJarByClass(RollupJob.class);
-		Path in = new Path(args[0]);
-		Path out = new Path(args[1]);
-		FileInputFormat.setInputPaths(job, in);
-		FileOutputFormat.setOutputPath(job, out);
 
-		job.setMapperClass(MapClass.class);
-		job.setNumReduceTasks(0);
+		Scan scan = new Scan();
+		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
+		scan.setCacheBlocks(false);  					// don't set to true for MR jobs
+		scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("power"));
 
-		job.setInputFormatClass(TextInputFormat.class);
-		job.setOutputFormatClass(TextOutputFormat.class);
-		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(Text.class);
-		System.exit(job.waitForCompletion(true)?0:1);
+		TableMapReduceUtil.initTableMapperJob(
+				"ismt",        							// input HBase table name
+				scan,             						// Scan instance to control CF and attribute selection
+				MyMapper.class,   						// mapper
+				IntWritable.class,			           // mapper output key  												timestamp
+				IntWritable.class,        				// mapper output value
+				job);
+
+		TableMapReduceUtil.initTableReducerJob(
+				"rsmt",                                    // output HBase table name
+				MyTableReducer.class,
+				job);
+
+		job.setNumReduceTasks(1);   					// at least one, adjust as required
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
 		return 0;
 	}
 
