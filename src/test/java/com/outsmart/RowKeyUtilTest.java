@@ -1,7 +1,9 @@
 package com.outsmart;
 
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 
 /**
@@ -12,8 +14,9 @@ public class RowKeyUtilTest {
 	String customer = "this is my customer name";
 	String location = "this is my location";
 	String wireid = "this is my wireid";
+	long timestamp = 111;
 
-	byte[] rowkey = RowKeyUtil.createRowKey(customer, location, wireid, 111);
+	byte[] rowkey = RowKeyUtil.createRowKey(customer, location, wireid, timestamp);
 
 	@Test
 	public void testGetCustomerHash() throws Exception {
@@ -39,6 +42,13 @@ public class RowKeyUtilTest {
 	@Test
 	public void testGetWireIdHash() throws Exception {
 		assertArrayEquals(RowKeyUtil.getHash(wireid), RowKeyUtil.getWireIdHash(rowkey));
+	}
+
+	@Test
+	public void testGetTimestampAsBytes() throws Exception {
+		byte[] returnedTimestamp = RowKeyUtil.getTimestampAsBytes(rowkey);
+
+		assertEquals(Long.MAX_VALUE - timestamp, Bytes.toLong(returnedTimestamp));
 	}
 
 }
