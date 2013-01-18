@@ -26,14 +26,13 @@ import java.io.IOException;
 /**
  * @author Vadim Bobrov
  */
-public class HBaseJob extends Configured implements Tool {
+public class RollupJob extends Configured implements Tool {
 
 	public static class MapClass extends TableMapper<ImmutableBytesWritable, Result> {
 
-		public void map(ImmutableBytesWritable row, Result values, Context context) throws IOException, InterruptedException {
+		public void map(ImmutableBytesWritable row, Result columns, Context context) throws IOException, InterruptedException {
 
-
-			for(KeyValue value: values.list()) {
+			for(KeyValue value: columns.list()) {
 				if(value.getValue().length > 0)
 					context.write(row, new Result());   // write something into result
 			}
@@ -47,7 +46,7 @@ public class HBaseJob extends Configured implements Tool {
 
 		String tableName = args[0];
 		Job job = new Job(conf, "rowcounter_" + tableName);
-		job.setJarByClass(HBaseJob.class); //TODO: see what this is
+		job.setJarByClass(RollupJob.class); //TODO: see what this is
 
 
 		Scan scan = new Scan();
@@ -63,8 +62,8 @@ public class HBaseJob extends Configured implements Tool {
 
 	public int run(String[] args) throws Exception {
 		Configuration conf = getConf();
-		Job job = new Job(conf, "HBaseJob");
-		job.setJarByClass(HBaseJob.class);
+		Job job = new Job(conf, "RollupJob");
+		job.setJarByClass(RollupJob.class);
 		Path in = new Path(args[0]);
 		Path out = new Path(args[1]);
 		FileInputFormat.setInputPaths(job, in);
@@ -82,7 +81,7 @@ public class HBaseJob extends Configured implements Tool {
 	}
 
 	public static void main(String[] args) throws Exception {
-		int res = ToolRunner.run(new Configuration(), new HBaseJob(), args);
+		int res = ToolRunner.run(new Configuration(), new RollupJob(), args);
 		System.exit(res);
 	}
 }
