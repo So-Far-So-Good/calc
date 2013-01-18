@@ -12,7 +12,6 @@ import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -47,7 +46,7 @@ public class RollupJob extends Configured implements Tool {
 				throw new IOException(e);
 			}
 
-			if ((numRecords++ % 10000) == 0)
+			if ((numRecords++ % 1000) == 0)
 				context.setStatus("mapper processed " + numRecords + " records so far");
 
 		}
@@ -81,18 +80,18 @@ public class RollupJob extends Configured implements Tool {
 		Scan scan = new Scan();
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  					// don't set to true for MR jobs
-		scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("power"));
+		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName));
 
 		TableMapReduceUtil.initTableMapperJob(
-				"ismt",        							// input HBase table name
+				Settings.MinuteInterpolaedTableName,	// input HBase table name
 				scan,             						// Scan instance to control CF and attribute selection
 				MyMapper.class,   						// mapper
-				IntWritable.class,			           // mapper output key  												timestamp
-				IntWritable.class,        				// mapper output value
+				ImmutableBytesWritable.class,	        // mapper output key
+				DoubleWritable.class,        			// mapper output value
 				job);
 
 		TableMapReduceUtil.initTableReducerJob(
-				"rsmt",                                    // output HBase table name
+				Settings.RollupTableName,				// output HBase table name
 				MyTableReducer.class,
 				job);
 
