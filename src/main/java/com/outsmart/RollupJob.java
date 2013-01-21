@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -54,7 +55,21 @@ public class RollupJob extends Configured implements Tool {
 	}
 
 
-	public static class MyTableReducer extends TableReducer<ImmutableBytesWritable, DoubleWritable, ImmutableBytesWritable> {
+	public static class MyCombiner extends Reducer<ImmutableBytesWritable, DoubleWritable, ImmutableBytesWritable, DoubleWritable> {
+
+		@Override
+		public void reduce(ImmutableBytesWritable rollupKey, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException {
+
+			double total = 0;
+			for (DoubleWritable val : values)
+				total += val.get();
+
+
+			context.write(rollupKey, new DoubleWritable(total));
+		}
+	}
+
+	public static class MyReducer extends TableReducer<ImmutableBytesWritable, DoubleWritable, ImmutableBytesWritable> {
 
 		@Override
 		public void reduce(ImmutableBytesWritable rollupKey, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException {
@@ -90,9 +105,11 @@ public class RollupJob extends Configured implements Tool {
 				DoubleWritable.class,        			// mapper output value
 				job);
 
+		job.setCombinerClass(MyCombiner.class);
+
 		TableMapReduceUtil.initTableReducerJob(
 				Settings.RollupTableName,				// output HBase table name
-				MyTableReducer.class,
+				MyReducer.class,
 				job);
 
 		job.setNumReduceTasks(1);   					// at least one, adjust as required
