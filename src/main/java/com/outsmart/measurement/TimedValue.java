@@ -1,4 +1,4 @@
-package com.outsmart.Measurement;
+package com.outsmart.measurement;
 
 /**
  * @author Vadim Bobrov

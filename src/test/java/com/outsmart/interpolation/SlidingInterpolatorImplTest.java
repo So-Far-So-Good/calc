@@ -1,6 +1,6 @@
 package com.outsmart.interpolation;
 
-import com.outsmart.Measurement.TimedValue;
+import com.outsmart.measurement.TimedValue;
 import org.junit.Before;
 import org.junit.Test;
 
