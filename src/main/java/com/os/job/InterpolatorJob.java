@@ -9,7 +9,6 @@ import com.os.measurement.TimedValueWritable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -106,13 +105,14 @@ public class InterpolatorJob {
 	}
 
 
-	public static Job getJob()  throws Exception {
-		Configuration conf = HBaseConfiguration.create();
-		conf.set("hbase.zookeeper.quorum", Settings.HBaseHost);
+	public static Job getJob(Configuration conf)  throws Exception {
 		Job job = new Job(conf, "InterpolatorJob");
 		job.setJarByClass(InterpolatorJob.class);
 
-		Scan scan = new Scan();
+		byte[] startRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("from", 0));
+		byte[] endRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("to", Long.MAX_VALUE));
+
+		Scan scan = new Scan(startRowKey, endRowKey);
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  					// don't set to true for MR jobs
 		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName));

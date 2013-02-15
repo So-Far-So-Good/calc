@@ -3,7 +3,6 @@ package com.os.job;
 import com.os.RowKeyUtil;
 import com.os.Settings;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -85,13 +84,14 @@ public class RollupJob {
 		}
 	}
 
-	public static Job getJob()  throws Exception {
-		Configuration conf = HBaseConfiguration.create();
-		conf.set("hbase.zookeeper.quorum", Settings.HBaseHost);
+	public static Job getJob(Configuration conf)  throws Exception {
 		Job job = new Job(conf, "RollupJob");
 		job.setJarByClass(RollupJob.class);
 
-		Scan scan = new Scan();
+		byte[] startRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("from", 0));
+		byte[] endRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("to", Long.MAX_VALUE));
+
+		Scan scan = new Scan(startRowKey, endRowKey);
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  					// don't set to true for MR jobs
 		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName));

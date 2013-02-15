@@ -1,3 +1,6 @@
+run as:
+hadoop jar calc.jar customer location from to wireid
+
 Settings.HBaseHost must point to zookeeper
 (or else org.apache.zookeeper.ClientCnxn - Session 0x0 for server null will be thrown)
 
