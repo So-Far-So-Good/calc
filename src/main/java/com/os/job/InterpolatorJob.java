@@ -47,7 +47,7 @@ public class InterpolatorJob {
 			ImmutableBytesWritable wireKey = new ImmutableBytesWritable(Bytes.add(customerHash, locationHash, wireidHash));
 
 			long timestamp = RowKeyUtil.getTimestamp(rowkey.get());
-			double energy = Bytes.toDouble(rowvalue.getValue(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName)));
+			double energy = Bytes.toDouble(rowvalue.getValue(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName)));
 
 			try {
 				context.write(wireKey, new TimedValueWritable(timestamp, energy));
@@ -96,7 +96,7 @@ public class InterpolatorJob {
 					ImmutableBytesWritable itpKey = new ImmutableBytesWritable(Bytes.add(wireKey.get(), Bytes.toBytes(Long.MAX_VALUE - tv.timestamp())));
 
 					Put put = new Put(itpKey.get());
-					put.add(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName), Bytes.toBytes(tv.value()));
+					put.add(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName), Bytes.toBytes(tv.value()));
 
 					context.write(itpKey, put);
 				}
@@ -108,14 +108,16 @@ public class InterpolatorJob {
 
 	public static Job getJob()  throws Exception {
 		Configuration conf = HBaseConfiguration.create();
+		conf.set("hbase.zookeeper.quorum", Settings.HBaseHost);
 		Job job = new Job(conf, "InterpolatorJob");
 		job.setJarByClass(InterpolatorJob.class);
 
 		Scan scan = new Scan();
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  					// don't set to true for MR jobs
-		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName));
+		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName));
 
+		//TableMapReduceUtil.addDependencyJars(job);
 		TableMapReduceUtil.initTableMapperJob(
 				Settings.TableName,						// input HBase table name
 				scan,             						// Scan instance to control CF and attribute selection

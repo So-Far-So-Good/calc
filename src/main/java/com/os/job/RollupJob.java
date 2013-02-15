@@ -38,7 +38,7 @@ public class RollupJob {
 			byte[] reverseTimestamp = RowKeyUtil.getTimestampAsBytes(rowkey.get());
 			ImmutableBytesWritable rollupKey = new ImmutableBytesWritable(Bytes.add(customerHash, locationHash, reverseTimestamp));
 
-			DoubleWritable energy = new DoubleWritable(Bytes.toDouble(rowvalue.getValue(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName))));
+			DoubleWritable energy = new DoubleWritable(Bytes.toDouble(rowvalue.getValue(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName))));
 
 			try {
 				context.write(rollupKey, energy);
@@ -79,7 +79,7 @@ public class RollupJob {
 
 
 			Put put = new Put(rollupKey.get());
-			put.add(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName), Bytes.toBytes(total));
+			put.add(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName), Bytes.toBytes(total));
 
 			context.write(rollupKey, put);
 		}
@@ -87,14 +87,16 @@ public class RollupJob {
 
 	public static Job getJob()  throws Exception {
 		Configuration conf = HBaseConfiguration.create();
+		conf.set("hbase.zookeeper.quorum", Settings.HBaseHost);
 		Job job = new Job(conf, "RollupJob");
 		job.setJarByClass(RollupJob.class);
 
 		Scan scan = new Scan();
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
 		scan.setCacheBlocks(false);  					// don't set to true for MR jobs
-		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.EnergyQualifierName));
+		scan.addColumn(Bytes.toBytes(Settings.ColumnFamilyName), Bytes.toBytes(Settings.ValueQualifierName));
 
+		//TableMapReduceUtil.addDependencyJars(job);
 		TableMapReduceUtil.initTableMapperJob(
 				Settings.MinuteInterpolaedTableName,	// input HBase table name
 				scan,             						// Scan instance to control CF and attribute selection

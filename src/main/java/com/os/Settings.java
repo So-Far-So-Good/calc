@@ -26,18 +26,6 @@ public class Settings {
 
 
 	static public final String ColumnFamilyName = "d";      			// stands for data
-	static public final String EnergyQualifierName = "e";   			// stands for energy
-	static public final String CurrentQualifierName = "c";  			// stands for current
-	static public final String VampireQualifierName = "v";  			// stands for volt-amp-reactive
-
-	static public final int  BatchSize = 1000;             			// default writer batch size - can be lost
-	static public final int  DerivedDataBatchSize = 10;				// writer batch size for minute interpolations- can be lost
-
-	static public final int  TablePoolSize = 100;
-
-	static public final String Host = "192.168.152.128";
-		//val Host = "10.0.0.158"
-
-	static public final int  ExpiredTimeWindow = 570000;				// time to incoming measurement expiration in milliseconds
-																// measurements older than that are not interpolated
+	static public final String ValueQualifierName = "v";   			// stands for value
+	static public final String HBaseHost = "node0";
 }
