@@ -88,8 +88,8 @@ public class RollupJob {
 		Job job = new Job(conf, "RollupJob");
 		job.setJarByClass(RollupJob.class);
 
-		byte[] startRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("from", 0));
-		byte[] endRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("to", Long.MAX_VALUE));
+		byte[] startRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.getLong("from", 0));
+		byte[] endRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.getLong("to", Long.MAX_VALUE));
 
 		Scan scan = new Scan(startRowKey, endRowKey);
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs

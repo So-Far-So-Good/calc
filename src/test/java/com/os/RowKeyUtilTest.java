@@ -16,7 +16,7 @@ public class RowKeyUtilTest {
 	String wireid = "this is my wireid";
 	long timestamp = 111;
 
-	byte[] rowkey = RowKeyUtil.createRowKey(customer, location, wireid, timestamp);
+	byte[] rowkey = RowKeyUtil.createRowKey(customer, location, timestamp);
 
 	@Test
 	public void testGetCustomerHash() throws Exception {
@@ -40,11 +40,6 @@ public class RowKeyUtilTest {
 	}
 
 	@Test
-	public void testGetWireIdHash() throws Exception {
-		assertArrayEquals(RowKeyUtil.getHash(wireid), RowKeyUtil.getWireIdHash(rowkey));
-	}
-
-	@Test
 	public void testGetTimestampAsBytes() throws Exception {
 		byte[] returnedTimestamp = RowKeyUtil.getTimestampAsBytes(rowkey);
 
@@ -53,9 +48,9 @@ public class RowKeyUtilTest {
 
 	@Test
 	public void testAddBytes() throws Exception {
-		byte[] res = Bytes.add(RowKeyUtil.getHash("s"), RowKeyUtil.getHash("s"), RowKeyUtil.getHash("s"));
+		byte[] res = Bytes.add(RowKeyUtil.getHash("s"), RowKeyUtil.getHash("s"));
 		res = Bytes.add(res, Bytes.toBytes(Long.MAX_VALUE - 3L));
-		assertEquals(res.length, RowKeyUtil.SIZEOF_STRING * 3 + Bytes.SIZEOF_LONG);
+		assertEquals(res.length, RowKeyUtil.SIZEOF_STRING * 2 + Bytes.SIZEOF_LONG);
 	}
 
 }

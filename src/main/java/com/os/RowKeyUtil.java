@@ -16,32 +16,10 @@ public class RowKeyUtil {
 	 * create rowkey using customer, location, wireid and reversed timestamp
 	 * @param customer
 	 * @param location
-	 * @param wireid
 	 * @param timestamp
 	 * @return
 	 */
-	static public byte[] createRowKey(String customer, String location, String wireid, long timestamp) {
-
-		byte[] rowkey = new byte[SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING + Bytes.SIZEOF_LONG];
-
-		Bytes.putBytes(rowkey, 0, getHash(customer), 0, SIZEOF_STRING);
-		Bytes.putBytes(rowkey, SIZEOF_STRING, getHash(location), 0, SIZEOF_STRING);
-		Bytes.putBytes(rowkey, SIZEOF_STRING + SIZEOF_STRING, getHash(wireid), 0, SIZEOF_STRING);
-
-		long reverseTimestamp = Long.MAX_VALUE - timestamp;
-		Bytes.putLong(rowkey, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING, reverseTimestamp);
-
-		return rowkey;
-	}
-
-	/**
-	 * create rowkey using customer, location and reversed timestamp
-	 * @param customer
-	 * @param location
-	 * @param timestamp
-	 * @return
-	 */
-	static public byte[] createRollupRowKey(String customer, String location, long timestamp) {
+	static public byte[] createRowKey(String customer, String location, long timestamp) {
 
 		byte[] rowkey = new byte[SIZEOF_STRING + SIZEOF_STRING + Bytes.SIZEOF_LONG];
 
@@ -93,7 +71,7 @@ public class RowKeyUtil {
 	 * @return
 	 */
 	static public long getTimestamp(byte[] rowkey) {
-		long reverseTimestamp = Bytes.toLong(rowkey, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING);
+		long reverseTimestamp = Bytes.toLong(rowkey, SIZEOF_STRING + SIZEOF_STRING);
 		return Long.MAX_VALUE - reverseTimestamp;
 	}
 
@@ -107,7 +85,7 @@ public class RowKeyUtil {
 	}
 
 	/**
-	 * extract customer hash from rowkey bytes
+	 * extract location hash from rowkey bytes
 	 * @param rowkey bytes to extract from
 	 * @return
 	 */
@@ -116,21 +94,12 @@ public class RowKeyUtil {
 	}
 
 	/**
-	 * extract customer hash from rowkey bytes
-	 * @param rowkey bytes to extract from
-	 * @return
-	 */
-	static public byte[] getWireIdHash(byte[] rowkey) {
-		return Arrays.copyOfRange(rowkey, SIZEOF_STRING + SIZEOF_STRING, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING);
-	}
-
-	/**
 	 * extract timestamp as bytes from rowkey bytes
 	 * @param rowkey bytes to extract from
 	 * @return
 	 */
 	static public byte[] getTimestampAsBytes(byte[] rowkey) {
-		return Arrays.copyOfRange(rowkey, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING, SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING + SIZEOF_STRING);
+		return Arrays.copyOfRange(rowkey, SIZEOF_STRING + SIZEOF_STRING, SIZEOF_STRING + SIZEOF_STRING + Bytes.SIZEOF_LONG);
 	}
 
 }

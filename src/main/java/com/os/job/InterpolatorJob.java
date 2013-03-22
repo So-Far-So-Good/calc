@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.NavigableMap;
 
 /**
  * @author Vadim Bobrov
@@ -41,7 +42,9 @@ public class InterpolatorJob {
 
 			byte[] customerHash = RowKeyUtil.getCustomerHash(rowkey.get());
 			byte[] locationHash = RowKeyUtil.getLocationHash(rowkey.get());
-			byte[] wireidHash = RowKeyUtil.getWireIdHash(rowkey.get());
+			//byte[] wireidHash = RowKeyUtil.getWireIdHash(rowkey.get());
+
+			NavigableMap<byte[], byte[]> columns = rowvalue.getFamilyMap(Bytes.toBytes(Settings.ColumnFamilyName));
 
 			ImmutableBytesWritable wireKey = new ImmutableBytesWritable(Bytes.add(customerHash, locationHash, wireidHash));
 
@@ -109,8 +112,8 @@ public class InterpolatorJob {
 		Job job = new Job(conf, "InterpolatorJob");
 		job.setJarByClass(InterpolatorJob.class);
 
-		byte[] startRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("from", 0));
-		byte[] endRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.get("wireid"), conf.getLong("to", Long.MAX_VALUE));
+		byte[] startRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.getLong("from", 0));
+		byte[] endRowKey = RowKeyUtil.createRowKey(conf.get("customer"), conf.get("location"), conf.getLong("to", Long.MAX_VALUE));
 
 		Scan scan = new Scan(startRowKey, endRowKey);
 		scan.setCaching(500);        					// 1 is the default in Scan, which will be bad for MapReduce jobs
